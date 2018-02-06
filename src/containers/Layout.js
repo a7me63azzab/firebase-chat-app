@@ -1,10 +1,10 @@
 import React,{Component} from "react";
 
-
 class Layout extends Component{
     render(){
         return(        
-           <div>hello</div>     
+           <div>hello
+           </div>     
         );
     };
 };

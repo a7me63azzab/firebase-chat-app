@@ -11,7 +11,9 @@ import uuidv4 from "uuid/v4";
 import _ from "lodash";
 import messageModel from "../js/models/message";
 import userModel from "../js/models/user";
-import conversationsModel from "../js/models/conversations";
+import 'antd/dist/antd.css';
+import { Button, notification } from 'antd';
+import notificationModel from "../js/models/notification";
 
 
 var database= firebase.database();
@@ -22,7 +24,7 @@ class Chat extends Component{
         users:[],
         messages:[],
         chatId:null,
-        participantsId:null
+        notificationId:null
     };
 
 
@@ -48,6 +50,14 @@ class Chat extends Component{
             });
         }
 
+        // listen to all changes in notifications model
+        database.ref('/notifications').on('value',(snapshot)=>{
+            if(snapshot.val() !== null){
+                this.getAllNotifications(snapshot.val());
+            }
+        });
+
+
     }
 
     otherIdExits=(otherId)=>{
@@ -68,6 +78,55 @@ class Chat extends Component{
          return exist;
          
     };
+
+    getAllNotifications(values){
+        let notificationsVal = values;
+        let notifications = _(notificationsVal)
+        .keys()
+        .map(notificationKey=>{
+            let notification = _.clone(notificationsVal[notificationKey]);
+            return notification;
+        }).value();
+        let indexNotify = notifications.findIndex(notification=>this.props.ownerId === notification.otherId);
+        if(indexNotify !== -1){
+            let notificationId = notifications[indexNotify].id;
+            let senderId = notifications[indexNotify].ownerId;
+            //get sender name 
+            let senderIndex = this.state.users.findIndex(user=> senderId === user.id );
+            let senderName = this.state.users[senderIndex].name;
+            let chatNotifyId = notifications[indexNotify].chatId;
+            this.openNotification(notificationId,senderId,senderName,chatNotifyId);
+        }
+
+    }
+
+     close = () => {
+        console.log('Notification was closed. Either the close button was clicked or duration time elapsed.');
+      };
+      
+     openNotification = (notificationId,senderId,senderName,chatNotifyId) => {
+         let user={
+             id:senderId,
+             name:senderName
+         };
+        const key = `open${Date.now()}`;
+        const btn = (
+          <Button type="primary" size="small" onClick={this.openChat(user)}>
+            Open Chat
+          </Button>
+        );
+        notification.open({
+          message: `New Message`,
+          description: `${senderName} send a message to you`,
+          btn,
+          key,
+          onClose: this.close(),
+        });
+      };
+
+    openChat=(user)=>{
+        this.userClickedHandler(user)
+    }
 
     getAllData(values){
         let messagesVal = values;
@@ -117,7 +176,7 @@ class Chat extends Component{
         // check if the user chat with this other user before or not 
         if(!this.otherIdExits(otherId)) {
                 var chatId = database.ref('/').push().key;
-                var participantsId = database.ref('/conversations/').push().key;
+                var notificationId = database.ref('/notifications/').push().key;
 
                 //get all chatWith users
                 let chatWith; 
@@ -171,9 +230,9 @@ class Chat extends Component{
                 });
 
                 
-                //add conversation into the queue waiting for other user to response 
-                var conversation = conversationsModel(participantsId,ownerId,otherId,chatId);
-                database.ref('/conversations/'+participantsId).set(conversation).then(()=>{
+                //add notification into the queue waiting for other user to response 
+                var notification = notificationModel(notificationId,ownerId,otherId,chatId);
+                database.ref('/notifications/'+notificationId).set(notification).then(()=>{
                     console.log('success');
                 }).catch((err)=>{
                     console.log('conversation error :',err);
@@ -199,7 +258,7 @@ class Chat extends Component{
 
                 this.setState({
                         chatId:chatId,
-                        participantsId:participantsId
+                        notificationId:notificationId
                     });
    
         }else{

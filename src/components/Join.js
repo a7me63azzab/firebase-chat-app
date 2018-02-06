@@ -42,6 +42,7 @@ class Join extends Component{
           
     };
 
+
     inputChangeHandler=(e)=>{
         var userName = e.target.value;
         this.setState({

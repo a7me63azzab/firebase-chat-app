@@ -11,7 +11,7 @@ import registerServiceWorker from './registerServiceWorker';
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
 const rootReducer =  combineReducers({
-  Join:joinReducer,
+  Join:joinReducer
 });
 const store = createStore(rootReducer ,
     composeEnhancers(
