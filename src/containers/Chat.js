@@ -24,24 +24,18 @@ class Chat extends Component{
         chatId:null,
         participantsId:null
     };
+
+
     
     componentWillMount(){
-        let allUsers = [];
-        // Get a database reference to our posts
-        var ref = database.ref("/users/");
 
-        ref.on("child_added", function(snapshot, prevChildKey) {
-            var userName = snapshot.val().name;
-            var otherId = snapshot.val().id; 
-            var index = allUsers.findIndex(item=>item.id === otherId );
-            
-            if (index === -1 ) {
-                     allUsers.push({name:userName,id:otherId});
-                }
+        database.ref('/users').on('value',(snapshot)=>{
+            if(snapshot.val() !== null){
+                this.getAllUsers(snapshot.val());
+            }
         });
-        this.setState({
-            users:allUsers
-        });
+
+
 
         //list all messages added in the current chat id
         if(this.state.chatId !==null){
@@ -88,6 +82,21 @@ class Chat extends Component{
           this.setState({
             messages: messages
           });
+      }
+
+      getAllUsers(values){
+          let usersVal = values;
+          let users = _(usersVal)
+          .keys()
+          .map(userKey => {
+              let clonedUser = _.clone(usersVal[userKey]);
+              return clonedUser; 
+          }).value();
+          console.log('users:=>',users);
+          this.setState({
+              users:users
+          });
+
       }
 
 
@@ -234,45 +243,7 @@ class Chat extends Component{
             });
     };
 
-    // listAllChat=(chat_id)=>{
-    //      //show all messages between users
-    //      let allMessages =[];
-    //     //  database.ref(`/${chat_id}`).on("child_added",(snapshot,prevChildKey)=>{
-    //     //      console.log('list all messages:');
-    //     //     console.log('value:',snapshot.val());
-    //     //  });
 
-    //     database.ref(`/${chat_id}`).on("value",(snapshot)=>{
-    //         if(snapshot.val()!==null){
-    //             for(var id in snapshot.val()){
-    //                 if (snapshot.val().hasOwnProperty(id)) {
-    //                     allMessages.push(snapshot.val()[id]);
-    //                 }
-    //             };
-    //         }
-    //     });
- 
-    //      this.setState({
-    //         messages:allMessages
-    //     });
-    // };
-
-//     getAllMessages=()=>{
-//         //show all messages between users
-//         let allMessages =[];
-//         database.ref(`/${this.state.chatId}`).on("child_added",(snapshot, prevChildKey)=>{
-//             let resMessage = snapshot.val().message;
-//             let resMessageId = snapshot.val().id;
-//             var messageIndex = allMessages.findIndex( message => message.id === resMessageId );
-//             if (messageIndex === -1) {
-//                     allMessages.push({message:resMessage,id:resMessageId});
-//                 }
-//         });
-
-//         this.setState({
-//            messages:allMessages
-//        });
-//    };
 
     render(){
         let messageNodes = this.state.messages.map((message) => {
@@ -280,9 +251,7 @@ class Chat extends Component{
                 <Message key={uuidv4()} message={message.message}/>
             )
           });
-
-        //   let allUsersWithoutCurrentUser = this.state.users;
-        
+    
           let allUsersWithoutCurrentUser = _.filter(this.state.users,(user)=> { return (user.id !== this.props.ownerId)});
           console.log('allUsersWithoutCurrentUser:',allUsersWithoutCurrentUser);
           let usersList = allUsersWithoutCurrentUser.map(user => {
@@ -294,7 +263,6 @@ class Chat extends Component{
             <Grid style={{marginTop:'50px'}}>
                 <Row className="show-grid" >
                     <Col sm={6} md={2} style={{borderRightStyle:'solid', borderRightColor:'#80d7ff',borderRightWidth:'3px'}}>
-                        {/* {this.state.users.map(user=>(<User userName={user.name} key={user.id} clicked={()=>this.userClickedHandler(user)}/>))} */}
                         {usersList}
                     </Col>
                     <Col xs={6} md={4}>
